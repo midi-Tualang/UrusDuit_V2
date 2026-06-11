@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UrusDuit V2 - Aliran Tunai & Komitmen</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    .status-hijau { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    .status-merah { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+    .btn-active { background-color: #0f172a; color: white; }
+    .btn-inactive { background-color: #f1f5f9; color: #475569; }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+  <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col justify-between">
+    <header class="p-6 bg-slate-900 text-white rounded-b-3xl shadow-lg">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sistem Aliran Tunai V2</p>
+          <h1 class="text-lg font-black tracking-tight">UrusDuit Pro</h1>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <button onclick="muatTurunPDF()" class="text-[11px] bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 px-2.5 py-1.5 rounded-full font-bold transition">
+            <i class="fa-solid fa-file-pdf"></i>
+          </button>
+          <button onclick="tetapkanReset()" class="text-[11px] bg-red-600/30 hover:bg-red-600/50 text-red-300 px-2.5 py-1.5 rounded-full font-bold transition">
+            <i class="fa-solid fa-rotate-right"></i> Reset
+          </button>
+        </div>
+      </div>
+      
+      <div id="kadStatus" class="status-hijau p-5 rounded-2xl text-white transition-all duration-500 shadow-md border border-white/5">
+        <p class="text-xs opacity-75 font-medium">Baki Bersih Semasa (Termasuk Bawa Hadapan)</p>
+        <h2 id="txtBakiBersih" class="text-3xl font-black my-1">RM 0.00</h2>
+        <div class="grid grid-cols-2 gap-2 text-[11px] mt-3 opacity-90 border-t border-white/10 pt-2.5">
+          <span>Masuk (+): <strong id="txtTotalMasuk" class="text-emerald-400">RM 0.00</strong></span>
+          <span class="text-right">Keluar (-): <strong id="txtTotalKeluar" class="text-amber-400">RM 0.00</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="p-5 flex-grow space-y-5 overflow-y-auto">
+      
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm space-y-3">
+        <div class="flex bg-slate-100 p-1 rounded-xl">
+          <button id="btnToggleBelanja" onclick="setJenisTransaksi('Perbelanjaan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-active">
+            <i class="fa-solid fa-wallet mr-1"></i> Perbelanjaan
+          </button>
+          <button id="btnTogglePendapatan" onclick="setJenisTransaksi('Pendapatan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-inactive">
+            <i class="fa-solid fa-money-bill-trend-up mr-1"></i> Pendapatan
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <input type="date" id="inpTarikh" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+          <input type="text" id="inpNama" placeholder="Keterangan / Item" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+          <input type="number" id="inpJumlah" placeholder="Amaun (RM)" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+          <select id="selKategori" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+          </select>
+        </div>
+        <button onclick="tambahTransaksi()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-slate-800 transition text-sm">
+          Simpan Transaksi
+        </button>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-tags text-slate-500 mr-1"></i> Pengurusan Kategori</h3>
+          <button onclick="bukaUrusKategori()" class="text-xs text-blue-600 font-bold hover:underline">+ Cipta</button>
+        </div>
+        <div id="senaraiKategoriStatus" class="space-y-3 mt-3"></div>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-history text-slate-400 mr-1"></i> Rekod Aliran Tunai</h3>
+        <div id="senaraiTransaksi" class="space-y-2"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // MASUKKAN URL WEB APP GOOGLE SHEET V2 BARU ANDA DI SINI
+    const API_URL = "https://script.google.com/macros/s/AKfycbyujUMGkAOEh6aAMRKnFXw4SAXauald5nB9F-Mw_qCqxAthzP3syrNOT7elafr46ETP/exec"; 
+
+    let dataSistem = {};
+    let jenisSemasa = "Perbelanjaan";
+
+    async function muatData() {
+      try {
+        Swal.fire({ title: 'Memuatkan data V2...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+        const respon = await fetch(API_URL);
+        const textRespon = await respon.text();
+        dataSistem = JSON.parse(textRespon);
+        Swal.close();
+        kemaskiniUI();
+      } catch (error) {
+        Swal.fire('Ralat Sistem', error.message, 'error');
+      }
+    }
+
+    function setJenisTransaksi(jenis) {
+      jenisSemasa = jenis;
+      const bBelanja = document.getElementById('btnToggleBelanja');
+      const bPendapatan = document.getElementById('btnTogglePendapatan');
+      
+      if(jenis === 'Perbelanjaan') {
+        bBelanja.className = "flex-1 py-2 text-xs font-bold rounded-lg transition btn-active";
+        bPendapatan.className = "flex-1 py-2 text-xs font-bold rounded-lg transition btn-inactive";
+      } else {
+        bBelanja.className = "flex-1 py-2 text-xs font-bold rounded-lg transition btn-inactive";
+        bPendapatan.className = "flex-1 py-2 text-xs font-bold rounded-lg transition btn-active";
+      }
+      tapisDropdownKategori();
+    }
+
+    function tapisDropdownKategori() {
+      const select = document.getElementById('selKategori');
+      select.innerHTML = '';
+      Object.keys(dataSistem.kategori).forEach(key => {
+        const kat = dataSistem.kategori[key];
+        if (kat.jenis === jenisSemasa) {
+          const baki = kat.hadBulanan - kat.gunaBulanan;
+          let infoBaki = kat.hadBulanan > 0 ? ` (Baki: RM ${baki.toFixed(2)})` : '';
+          if (kat.hadBulanan > 0 && baki < 0) infoBaki = ` (Lebih: RM ${Math.abs(baki).toFixed(2)})`;
+          select.innerHTML += `<option value="${key}">${key}${infoBaki}</option>`;
+        }
+      });
+    }
+
+    function kemaskiniUI() {
+      document.getElementById('inpTarikh').value = new Date().toISOString().split('T')[0];
+      document.getElementById('txtTotalMasuk').innerText = `RM ${dataSistem.totalPendapatanBulan.toFixed(2)}`;
+      document.getElementById('txtTotalKeluar').innerText = `RM ${dataSistem.jumlahBulanIni.toFixed(2)}`;
+      document.getElementById('txtBakiBersih').innerText = `RM ${dataSistem.bakiBersih.toFixed(2)}`;
+
+      const kad = document.getElementById('kadStatus');
+      if (dataSistem.bakiBersih < 0) {
+        kad.className = "status-merah p-5 rounded-2xl text-white transition-all duration-500 shadow-md border border-white/5";
+      } else {
+        kad.className = "status-hijau p-5 rounded-2xl text-white transition-all duration-500 shadow-md border border-white/5";
+      }
+
+      tapisDropdownKategori();
+
+      // Urus Paparan Kad Kategori
+      const katContainer = document.getElementById('senaraiKategoriStatus');
+      katContainer.innerHTML = '';
+
+      Object.keys(dataSistem.kategori).forEach(key => {
+        const kat = dataSistem.kategori[key];
+        const baki = kat.hadBulanan - kat.gunaBulanan;
+        const isPendapatan = kat.jenis === "Pendapatan";
+        
+        let teksInfo = '';
+        let progressHtml = '';
+
+        if (isPendapatan) {
+          teksInfo = `<span class="text-emerald-600 font-bold">Koleksi: RM ${kat.gunaBulanan.toFixed(2)}</span>`;
+        } else {
+          let warnaTeks = baki >= 0 ? 'text-emerald-500' : 'text-red-500';
+          let istilah = baki >= 0 ? 'Baki:' : 'Terlebih:';
+          teksInfo = `<span class="${warnaTeks} font-bold">${istilah} RM ${Math.abs(baki).toFixed(2)}</span> / Had: RM ${kat.hadBulanan}`;
+          
+          const peratusGuna = kat.hadBulanan > 0 ? (kat.gunaBulanan / kat.hadBulanan) * 100 : 0;
+          let warnaBar = peratusGuna >= 100 ? 'bg-red-500' : (peratusGuna > 75 ? 'bg-amber-500' : 'bg-emerald-500');
+          progressHtml = `
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden my-1">
+              <div class="${warnaBar} h-full" style="width: ${Math.min(peratusGuna, 100)}%"></div>
+            </div>`;
+        }
+
+        katContainer.innerHTML += `
+          <div class="text-xs border-b border-slate-100 pb-2">
+            <div class="flex justify-between font-medium text-slate-600">
+              <span><strong>[${kat.jenis[0]}]</strong> ${key} ${kat.autoKomitmen === 'Ya' ? '🔄' : ''}</span>
+              <span class="text-slate-500">${isPendapatan ? 'Jumlah Masuk' : 'Guna'}: RM ${kat.gunaBulanan.toFixed(2)}</span>
+            </div>
+            ${progressHtml}
+            <div class="flex justify-between items-center mt-1 text-[11px] text-slate-400">
+              <span>${teksInfo}</span>
+              <div class="space-x-2">
+                <button onclick="editKategori('${key}','${kat.hadHarian}','${kat.hadBulanan}','${kat.jenis}','${kat.autoKomitmen}')" class="text-blue-500 hover:underline">Edit</button>
+                <button onclick="padamKategori('${key}')" class="text-red-500 hover:underline">Padam</button>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      // Urus Paparan Transaksi
+      const transContainer = document.getElementById('senaraiTransaksi');
+      transContainer.innerHTML = '';
+      dataSistem.transaksi.forEach(t => {
+        const isInm = t.jenis === "Pendapatan";
+        transContainer.innerHTML += `
+          <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200/40 text-xs">
+            <div>
+              <p class="font-bold text-slate-800">${t.nama}</p>
+              <p class="text-[10px] text-slate-400">${t.kategori} • ${new Date(t.tarikh).toLocaleDateString('ms-MY')}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="font-black ${isInm ? 'text-emerald-600' : 'text-slate-800'}">${isInm ? '+' : '-'} RM ${t.jumlah.toFixed(2)}</span>
+              <button onclick="padamTransaksi('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-sm"></i></button>
+            </div>
+          </div>`;
+      });
+    }
+
+    async function tambahTransaksi() {
+      const tarikh = document.getElementById('inpTarikh').value;
+      const nama = document.getElementById('inpNama').value;
+      const jumlah = parseFloat(document.getElementById('inpJumlah').value);
+      const kategori = document.getElementById('selKategori').value;
+
+      if (!tarikh || !nama || !jumlah || !kategori) {
+        Swal.fire('Ralat', 'Sila isi ruangan item dan amaun!', 'error'); return;
+      }
+
+      await hantarData({ tindakan: "tambahTransaksi", tarikh, nama, jumlah, kategori, jenis: jenisSemasa });
+      document.getElementById('inpNama').value = '';
+      document.getElementById('inpJumlah').value = '';
+      muatData();
+    }
+
+    async function padamTransaksi(id) {
+      if ((await Swal.fire({ title: 'Padam transaksi?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+        await hantarData({ tindakan: "padamTransaksi", id }); muatData();
+      }
+    }
+
+    async function bukaUrusKategori() {
+      const { value: formValues } = await Swal.fire({
+        title: 'Cipta Kategori Baru',
+        html:
+          '<input id="swal-k1" class="swal2-input text-sm" placeholder="Nama Kategori">'+
+          '<select id="swal-k2" class="swal2-input text-sm"><option value="Perbelanjaan">Perbelanjaan</option><option value="Pendapatan">Pendapatan</option></select>'+
+          '<input type="number" id="swal-k3" class="swal2-input text-sm" placeholder="Had Harian (RM)">'+
+          '<input type="number" id="swal-k4" class="swal2-input text-sm" placeholder="Had Bulanan / Anggaran (RM)">'+
+          '<select id="swal-k5" class="swal2-input text-sm"><option value="Tidak">Bukan Komitmen Tetap</option><option value="Ya">Auto Komitmen Setiap Bulan (🔄)</option></select>',
+        preConfirm: () => [
+          document.getElementById('swal-k1').value,
+          document.getElementById('swal-k2').value,
+          parseFloat(document.getElementById('swal-k3').value||0),
+          parseFloat(document.getElementById('swal-k4').value||0),
+          document.getElementById('swal-k5').value
+        ]
+      });
+      if (formValues && formValues[0]) {
+        await hantarData({ tindakan: "tambahKategori", nama: formValues[0], jenis: formValues[1], hadHarian: formValues[2], hadBulanan: formValues[3], autoKomitmen: formValues[4] });
+        muatData();
+      }
+    }
+
+    async function editKategori(namaAsal, hHarian, hBulan, jenisAsal, autoAsal) {
+      const { value: formValues } = await Swal.fire({
+        title: 'Edit Kategori',
+        html:
+          `<input id="swal-e1" class="swal2-input text-sm" value="${namaAsal}">`+
+          `<select id="swal-e2" class="swal2-input text-sm"><option value="Perbelanjaan" ${jenisAsal==='Perbelanjaan'?'selected':''}>Perbelanjaan</option><option value="Pendapatan" ${jenisAsal==='Pendapatan'?'selected':''}>Pendapatan</option></select>`+
+          `<input type="number" id="swal-e3" class="swal2-input text-sm" value="${hHarian}">`+
+          `<input type="number" id="swal-e4" class="swal2-input text-sm" value="${hBulan}">`+
+          `<select id="swal-e5" class="swal2-input text-sm"><option value="Tidak" ${autoAsal==='Tidak'?'selected':''}>Bukan Komitmen Tetap</option><option value="Ya" ${autoAsal==='Ya'?'selected':''}>Auto Komitmen Setiap Bulan (🔄)</option></select>`,
+        preConfirm: () => [
+          document.getElementById('swal-e1').value,
+          document.getElementById('swal-e2').value,
+          parseFloat(document.getElementById('swal-e3').value||0),
+          parseFloat(document.getElementById('swal-e4').value||0),
+          document.getElementById('swal-e5').value
+        ]
+      });
+      if (formValues && formValues[0]) {
+        await hantarData({ tindakan: "kemaskiniKategori", namaAsal, namaBaru: formValues[0], jenis: formValues[1], hadHarian: formValues[2], hadBulanan: formValues[3], autoKomitmen: formValues[4] });
+        muatData();
+      }
+    }
+
+    async function padamKategori(nama) {
+      if ((await Swal.fire({ title: `Padam kategori ${nama}?`, icon: 'warning', showCancelButton: true })).isConfirmed) {
+        await hantarData({ tindakan: "padamKategori", nama }); muatData();
+      }
+    }
+
+    async function tetapkanReset() {
+      if ((await Swal.fire({ title: 'Tutup akaun bulanan?', text: "Transaksi akan dibersihkan, baki dibawa ke hadapan & Auto Komitmen akan diisi terus!", icon: 'warning', showCancelButton: true })).isConfirmed) {
+        const respon = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ tindakan: "resetSistem" }) });
+        const hasil = await respon.json();
+        Swal.fire('Selesai!', `Baki dibawa ke hadapan: RM ${hasil.bakiBaru.toFixed(2)}`, 'success');
+        muatData();
+      }
+    }
+
+    async function hantarData(data) {
+      Swal.fire({ title: 'Menghantar...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+      await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    function muatTurunPDF() {
+      const tarikhSemasa = new Date();
+      const bulanTahun = tarikhSemasa.toLocaleDateString('ms-MY', { month: 'long', year: 'numeric' });
+      const elemenLaporan = document.createElement('div');
+      elemenLaporan.style.padding = '20mm 15mm';
+      elemenLaporan.style.backgroundColor = '#ffffff';
+      elemenLaporan.style.fontFamily = 'Arial, sans-serif';
+      elemenLaporan.style.color = '#1e293b';
+      
+      let htmlKandungan = `
+        <div style="border-bottom: 3px solid #0f172a; padding-bottom: 16px; margin-bottom: 25px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td>
+                <h1 style="font-size: 24px; font-weight: 900; color: #0f172a; margin: 0;">URUSDUIT V2 PRO</h1>
+                <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0; font-weight: bold; text-transform: uppercase;">Penyata Aliran Tunai & Komitmen Berkala</p>
+              </td>
+              <td style="text-align: right; vertical-align: bottom;">
+                <h2 style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 0;">LAPORAN ALIRAN TUNAI</h2>
+                <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0; font-weight: bold;">Sesi: ${bulanTahun}</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <p style="font-size: 10px; color: #94a3b8; margin-bottom: 20px;">Tarikh Cetakan: ${new Date().toLocaleString('ms-MY')}</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;">
+          <tr>
+            <td style="width: 33%; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px 0 0 6px;">
+              <span style="font-size: 9px; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px;">TOTAL PENDAPATAN</span>
+              <strong style="font-size: 16px; color: #059669;">RM ${dataSistem.totalPendapatanBulan.toFixed(2)}</strong>
+            </td>
+            <td style="width: 33%; padding: 15px; background-color: #f8fafc; border-y: 1px solid #e2e8f0; border-r: 1px solid #e2e8f0;">
+              <span style="font-size: 9px; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px;">TOTAL PERBELANJAAN</span>
+              <strong style="font-size: 16px; color: #b45309;">RM ${dataSistem.jumlahBulanIni.toFixed(2)}</strong>
+            </td>
+            <td style="width: 33%; padding: 15px; background-color: #f8fafc; border-y: 1px solid #e2e8f0; border-r: 1px solid #e2e8f0; border-radius: 0 6px 6px 0;">
+              <span style="font-size: 9px; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px;">BAKI BERSIH (ALIRAN)</span>
+              <strong style="font-size: 16px; color: ${dataSistem.bakiBersih >= 0 ? '#059669' : '#dc2626'};">RM ${dataSistem.bakiBersih.toFixed(2)}</strong>
+            </td>
+          </tr>
+        </table>
+        <h3 style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 8px;">Log Transaksi Penuh</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0;">
+          <thead>
+            <tr style="background-color: #f1f5f9; color: #0f172a; text-align: left; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 8px;">Tarikh</th>
+              <th style="padding: 8px;">Perkara</th>
+              <th style="padding: 8px;">Kategori</th>
+              <th style="padding: 8px; text-align: right;">Amaun</th>
+            </tr>
+          </thead>
+          <tbody>`;
+          
+      dataSistem.transaksi.forEach(t => {
+        const sign = t.jenis === "Pendapatan" ? '+' : '-';
+        const color = t.jenis === "Pendapatan" ? '#059669' : '#0f172a';
+        htmlKandungan += `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 8px; color: #64748b;">${new Date(t.tarikh).toLocaleDateString('ms-MY')}</td>
+            <td style="padding: 8px; font-weight: bold;">${t.nama}</td>
+            <td style="padding: 8px; color: #475569;">${t.kategori}</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold; color: ${color};">${sign} RM ${t.jumlah.toFixed(2)}</td>
+          </tr>`;
+      });
+      
+      htmlKandungan += `</tbody></table></div>`;
+      elemenLaporan.innerHTML = htmlKandungan;
+      
+      html2pdf().from(elemenLaporan).set({
+        margin: 10, filename: `Laporan_UrusDuit_V2_${tarikhSemasa.getFullYear()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+    }
+
+    window.onload = muatData;
+  </script>
+</body>
+</html>
