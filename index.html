@@ -13,12 +13,18 @@
     .status-merah { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
     .btn-active { background-color: #0f172a; color: white; }
     .btn-inactive { background-color: #f1f5f9; color: #475569; }
+    /* Scrollbar cantik untuk PC */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800">
+<body class="bg-slate-100 font-sans text-slate-800 lg:p-6">
 
-  <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col justify-between">
-    <header class="p-6 bg-slate-900 text-white rounded-b-3xl shadow-lg">
+  <div class="max-w-md lg:max-w-5xl mx-auto bg-white min-h-screen lg:min-h-[90vh] shadow-2xl flex flex-col lg:rounded-3xl overflow-hidden border border-slate-200">
+    
+    <header class="p-6 bg-slate-900 text-white rounded-b-3xl lg:rounded-none shadow-lg">
       <div class="flex justify-between items-center mb-4">
         <div>
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sistem Aliran Tunai V2</p>
@@ -26,10 +32,10 @@
         </div>
         <div class="flex items-center space-x-1.5">
           <button onclick="muatTurunPDF()" class="text-[11px] bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 px-2.5 py-1.5 rounded-full font-bold transition">
-            <i class="fa-solid fa-file-pdf"></i>
+            <i class="fa-solid fa-file-pdf"></i> Cetak PDF
           </button>
           <button onclick="tetapkanReset()" class="text-[11px] bg-red-600/30 hover:bg-red-600/50 text-red-300 px-2.5 py-1.5 rounded-full font-bold transition">
-            <i class="fa-solid fa-rotate-right"></i> Reset
+            <i class="fa-solid fa-rotate-right"></i> Reset Bulan
           </button>
         </div>
       </div>
@@ -39,52 +45,55 @@
         <h2 id="txtBakiBersih" class="text-3xl font-black my-1">RM 0.00</h2>
         <div class="grid grid-cols-2 gap-2 text-[11px] mt-3 opacity-90 border-t border-white/10 pt-2.5">
           <span>Masuk (+): <strong id="txtTotalMasuk" class="text-emerald-400">RM 0.00</strong></span>
-          <span class="text-right">Keluar (-): <strong id="txtTotalKeluar" class="text-amber-400">RM 0.00</strong></span>
+          <span class="text-right lg:text-left">Keluar (-): <strong id="txtTotalKeluar" class="text-amber-400">RM 0.00</strong></span>
         </div>
       </div>
     </header>
 
-    <main class="p-5 flex-grow space-y-5 overflow-y-auto">
+    <main class="p-5 flex-grow lg:grid lg:grid-cols-12 lg:gap-8 overflow-y-auto">
       
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm space-y-3">
-        <div class="flex bg-slate-100 p-1 rounded-xl">
-          <button id="btnToggleBelanja" onclick="setJenisTransaksi('Perbelanjaan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-active">
-            <i class="fa-solid fa-wallet mr-1"></i> Perbelanjaan
+      <div class="lg:col-span-7 space-y-5">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm space-y-3">
+          <div class="flex bg-slate-100 p-1 rounded-xl">
+            <button id="btnToggleBelanja" onclick="setJenisTransaksi('Perbelanjaan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-active">
+              <i class="fa-solid fa-wallet mr-1"></i> Perbelanjaan
+            </button>
+            <button id="btnTogglePendapatan" onclick="setJenisTransaksi('Pendapatan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-inactive">
+              <i class="fa-solid fa-money-bill-trend-up mr-1"></i> Pendapatan
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input type="date" id="inpTarikh" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+            <input type="text" id="inpNama" placeholder="Keterangan / Item" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+            <input type="number" id="inpJumlah" placeholder="Amaun (RM)" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
+            <select id="selKategori" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"></select>
+          </div>
+          <button onclick="tambahTransaksi()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-slate-800 transition text-sm">
+            Simpan Transaksi
           </button>
-          <button id="btnTogglePendapatan" onclick="setJenisTransaksi('Pendapatan')" class="flex-1 py-2 text-xs font-bold rounded-lg transition btn-inactive">
-            <i class="fa-solid fa-money-bill-trend-up mr-1"></i> Pendapatan
-          </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <input type="date" id="inpTarikh" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
-          <input type="text" id="inpNama" placeholder="Keterangan / Item" class="col-span-2 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
-          <input type="number" id="inpJumlah" placeholder="Amaun (RM)" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
-          <select id="selKategori" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none">
-          </select>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-tags text-slate-500 mr-1"></i> Pengurusan Kategori</h3>
+            <button onclick="bukaUrusKategori()" class="text-xs text-blue-600 font-bold hover:underline">+ Cipta</button>
+          </div>
+          <div id="senaraiKategoriStatus" class="space-y-3 mt-3"></div>
         </div>
-        <button onclick="tambahTransaksi()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-slate-800 transition text-sm">
-          Simpan Transaksi
-        </button>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-tags text-slate-500 mr-1"></i> Pengurusan Kategori</h3>
-          <button onclick="bukaUrusKategori()" class="text-xs text-blue-600 font-bold hover:underline">+ Cipta</button>
-        </div>
-        <div id="senaraiKategoriStatus" class="space-y-3 mt-3"></div>
+      <div class="lg:col-span-5 mt-6 lg:mt-0 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 flex flex-col max-h-[800px]">
+        <h3 class="text-sm font-bold text-slate-700 mb-3"><i class="fa-solid fa-history text-slate-400 mr-1"></i> Rekod Aliran Tunai</h3>
+        <div id="senaraiTransaksi" class="space-y-2 overflow-y-auto pr-1 flex-grow"></div>
       </div>
 
-      <div class="space-y-2">
-        <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-history text-slate-400 mr-1"></i> Rekod Aliran Tunai</h3>
-        <div id="senaraiTransaksi" class="space-y-2"></div>
-      </div>
     </main>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyujUMGkAOEh6aAMRKnFXw4SAXauald5nB9F-Mw_qCqxAthzP3syrNOT7elafr46ETP/exec"; 
+    // MASUKKAN URL WEB APP GOOGLE SHEET V2 BARU ANDA DI SINI
+    const API_URL = "SILA_TAMPAL_URL_WEB_APP_BARU_DI_SINI"; 
 
     let dataSistem = {};
     let jenisSemasa = "Perbelanjaan";
@@ -154,7 +163,7 @@
         const baki = kat.hadBulanan - kat.gunaBulanan;
         const isPendapatan = kat.jenis === "Pendapatan";
         const isAuto = (!isNaN(parseInt(kat.autoKomitmen)) && parseInt(kat.autoKomitmen) > 0);
-        const ikonAuto = isAuto ? ` <span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[9px] ml-1">🗓️ ${parseInt(kat.autoKomitmen)}hb</span>` : '';
+        const ikonAuto = isAuto ? ` <span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[9px] ml-1 shadow-sm">🗓️ ${parseInt(kat.autoKomitmen)}hb</span>` : '';
         
         let teksInfo = '';
         let progressHtml = '';
@@ -169,7 +178,7 @@
           const peratusGuna = kat.hadBulanan > 0 ? (kat.gunaBulanan / kat.hadBulanan) * 100 : 0;
           let warnaBar = peratusGuna >= 100 ? 'bg-red-500' : (peratusGuna > 75 ? 'bg-amber-500' : 'bg-emerald-500');
           progressHtml = `
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden my-1">
+            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden my-1.5">
               <div class="${warnaBar} h-full" style="width: ${Math.min(peratusGuna, 100)}%"></div>
             </div>`;
         }
@@ -196,14 +205,14 @@
       dataSistem.transaksi.forEach(t => {
         const isInm = t.jenis === "Pendapatan";
         transContainer.innerHTML += `
-          <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200/40 text-xs">
+          <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-xs transition hover:shadow-md">
             <div>
               <p class="font-bold text-slate-800">${t.nama}</p>
-              <p class="text-[10px] text-slate-400">${t.kategori} • ${new Date(t.tarikh).toLocaleDateString('ms-MY')}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">${t.kategori} • ${new Date(t.tarikh).toLocaleDateString('ms-MY')}</p>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-3">
               <span class="font-black ${isInm ? 'text-emerald-600' : 'text-slate-800'}">${isInm ? '+' : '-'} RM ${t.jumlah.toFixed(2)}</span>
-              <button onclick="padamTransaksi('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-sm"></i></button>
+              <button onclick="padamTransaksi('${t.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-circle-xmark text-base"></i></button>
             </div>
           </div>`;
       });
